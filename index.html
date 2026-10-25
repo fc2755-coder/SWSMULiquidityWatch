@@ -267,7 +267,7 @@
         <div id="chart6c" class="chart" style="height:300px;"></div>
       </div>
     </div>
-    <div class="panel-title" style="margin-top:16px;">买入结构对比（亿元，按系别堆叠）<span class="src">24.2 救中小盘 · 25.4 300压舱石 · 26.7 双创对冲 · 本周 哑铃</span></div>
+    <div class="panel-title" style="margin-top:16px;">买入结构对比（亿元，整轮合计按系别堆叠，与§9事件口径一致）<span class="src">24.2 300为主 · 924 全面铺开 · 25.4 300压舱石 · 26.7 均衡托底 · 26.10 哑铃</span></div>
     <div id="chart6b" class="chart" style="height:390px;"></div>
     <div class="scrollbox" style="margin-top:14px; max-height:300px;">
       <table>
@@ -819,30 +819,39 @@ window.addEventListener('load', function () {
       })
     });
   })();
+  var STRUCT = [{"key": "crisis2024", "label": "24.2 流动性危机", "range": "2024-01~03", "groups": {"沪深300系": 2534.5, "上证50/180系": 252.0, "中证500系": 425.4, "中证1000系": 241.7, "创业板系": 159.2, "科创50系": 66.3, "其他宽基": -1.1}, "total": 3678.0}, {"key": "924", "label": "24.9 924行情", "range": "2024-09-18~10-11", "groups": {"沪深300系": 893.5, "上证50/180系": 76.7, "中证500系": 189.4, "中证1000系": 347.8, "创业板系": 417.5, "科创50系": 179.6, "其他宽基": 5.8}, "total": 2110.4}, {"key": "tariff2025", "label": "25.4 关税维稳", "range": "2025-04-07~18", "groups": {"沪深300系": 1329.3, "上证50/180系": 196.8, "中证500系": 184.8, "中证1000系": 304.2, "创业板系": 64.7, "科创50系": 28.3, "其他宽基": -1.5}, "total": 2106.5}, {"key": "jul2026", "label": "26.7 年中托底", "range": "2026-07-13~08-03", "groups": {"沪深300系": 703.9, "上证50/180系": 39.3, "中证500系": 179.5, "中证1000系": 341.5, "创业板系": 338.8, "科创50系": 104.7, "其他宽基": 14.2}, "total": 1721.8}, {"key": "cur", "label": "26.10 科技失血", "range": "10-12~10-23（进行中）", "groups": {"沪深300系": 990.8, "上证50/180系": 168.4, "中证500系": 113.0, "中证1000系": 91.8, "创业板系": 369.5, "科创50系": 35.1, "其他宽基": 4.5}, "total": 1773.1}];
   (function () {
-    // 与 6a 同一口径：只呈现单周合计前 5 的事件周（HIST 为时间序，filter 保序）
-    var TOP5 = {};
-    HIST.slice().sort(function (a, b) { return b.total - a.total; }).slice(0, 5).forEach(function (r) { TOP5[r.key] = 1; });
-    var H5 = HIST.filter(function (r) { return TOP5[r.key]; });
+    // 整轮口径（与 §9 事件一致）：24.2 / 924 / 25.4 / 26.7 / 26.10本轮
     mk('chart6b').setOption({
       tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' },
         formatter: function (ps) {
-          var r = H5[ps[0].dataIndex];
+          var r = STRUCT[ps[0].dataIndex];
           var h = '<b>' + r.label + '</b>（' + r.range + '）<br>';
-          ps.forEach(function (p) { if (p.value > 0) h += p.marker + p.seriesName + '：' + p.value.toLocaleString() + ' 亿<br>'; });
-          return h + '合计：' + r.total.toLocaleString() + ' 亿';
+          ps.forEach(function (p) { if (p.seriesName !== '_total' && p.value > 0) h += p.marker + p.seriesName + '：' + p.value.toLocaleString() + ' 亿<br>'; });
+          return h + '整轮合计：' + r.total.toLocaleString() + ' 亿';
         } },
-      legend: { top: 0, textStyle: { fontSize: 11 } },
-      grid: { left: 56, right: 24, top: 34, bottom: 40 },
-      xAxis: { type: 'category', data: H5.map(function (r) { return r.label; }),
-        axisLabel: { fontSize: 10, interval: 0, rotate: 18 }, axisTick: { show: false } },
-      yAxis: { type: 'value', name: '亿元', splitLine: { lineStyle: { color: '#eef1f5' } } },
+      legend: { top: 0, textStyle: { fontSize: 11 }, data: GORDER },
+      grid: { left: 56, right: 24, top: 34, bottom: 30 },
+      xAxis: { type: 'category', data: STRUCT.map(function (r) { return r.label; }),
+        axisLabel: { fontSize: 11, interval: 0 }, axisTick: { show: false } },
+      yAxis: { type: 'value', name: '亿元', min: 0, splitLine: { lineStyle: { color: '#eef1f5' } } },
       series: GORDER.map(function (g) {
-        return { name: g, type: 'bar', stack: 't', barMaxWidth: 44,
+        return { name: g, type: 'bar', stack: 't', barMaxWidth: 56,
           itemStyle: { color: GCOLOR2[g] },
-          data: H5.map(function (r) { return r.groups[g] || 0; }) };
+          data: STRUCT.map(function (r) { return r.groups[g] || 0; }) };
       })
     });
+  })();
+  (function () {
+    // 柱顶整轮合计标签（独立透明系列叠加）
+    var c = mk('chart6b');
+    var opt = c.getOption();
+    opt.series.push({ name: '_total', type: 'bar', stack: 't2', barGap: '-100%', silent: true,
+      itemStyle: { color: 'transparent' }, legendHoverLink: false,
+      label: { show: true, position: 'top', fontSize: 11, fontWeight: 700, color: '#33465a',
+        formatter: function (p) { return STRUCT[p.dataIndex].total.toLocaleString(); } },
+      data: STRUCT.map(function (r) { return r.total; }) });
+    c.setOption(opt);
   })();
 
   // 6d. 整轮阶段总量（剔除小额流出季 out24q4/out25q1/out25q3，仅保留 26Q1/26Q2 巨量撤出）
