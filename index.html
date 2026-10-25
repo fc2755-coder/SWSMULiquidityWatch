@@ -259,8 +259,8 @@
     <div class="sec-sub">历史轮次为静态存档（2026-10-24 起改用 MCP 周榜/季榜「净流入+净流出」双向轧差复核，未上榜小额基金未计入）｜当前周每日滚动更新（逐日榜单口径，与周榜差&lt;1%）｜市场涨跌 = 沪深300 区间涨跌幅</div>
     <div class="row2">
       <div>
-        <div class="panel-title">历史事件周合计（亿元，降序）<span class="src">橙=本周 · tooltip 含日均</span></div>
-        <div id="chart6a" class="chart" style="height:370px;"></div>
+        <div class="panel-title">24年以来救市事件（亿元，单周合计前5）<span class="src">橙=本周 · tooltip 含日均</span></div>
+        <div id="chart6a" class="chart" style="height:250px;"></div>
       </div>
       <div>
         <div class="panel-title">日度节奏叠加（亿元，按轮内交易日序号）<span class="src">四轮有逐日存档 · 24-02 第5日=节后02-19 · 26-07 逐日为净额口径（07-15 小幅流出）</span></div>
@@ -781,7 +781,7 @@ window.addEventListener('load', function () {
   var GCOLOR2 = { '沪深300系': '#c23531', '上证50/180系': '#e8a0a0', '中证500系': '#2f4554',
     '中证1000系': '#61a0a8', '创业板系': '#d48265', '科创50系': '#91c7ae', '其他宽基': '#b5b5b5' };
   (function () {
-    var s = HIST.slice().sort(function (a, b) { return a.total - b.total; });
+    var s = HIST.slice().sort(function (a, b) { return b.total - a.total; }).slice(0, 5).sort(function (a, b) { return a.total - b.total; });
     mk('chart6a').setOption({
       tooltip: { trigger: 'item',
         formatter: function (p) {
@@ -820,23 +820,27 @@ window.addEventListener('load', function () {
     });
   })();
   (function () {
+    // 与 6a 同一口径：只呈现单周合计前 5 的事件周（HIST 为时间序，filter 保序）
+    var TOP5 = {};
+    HIST.slice().sort(function (a, b) { return b.total - a.total; }).slice(0, 5).forEach(function (r) { TOP5[r.key] = 1; });
+    var H5 = HIST.filter(function (r) { return TOP5[r.key]; });
     mk('chart6b').setOption({
       tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' },
         formatter: function (ps) {
-          var r = HIST[ps[0].dataIndex];
+          var r = H5[ps[0].dataIndex];
           var h = '<b>' + r.label + '</b>（' + r.range + '）<br>';
           ps.forEach(function (p) { if (p.value > 0) h += p.marker + p.seriesName + '：' + p.value.toLocaleString() + ' 亿<br>'; });
           return h + '合计：' + r.total.toLocaleString() + ' 亿';
         } },
       legend: { top: 0, textStyle: { fontSize: 11 } },
       grid: { left: 56, right: 24, top: 34, bottom: 40 },
-      xAxis: { type: 'category', data: HIST.map(function (r) { return r.label; }),
+      xAxis: { type: 'category', data: H5.map(function (r) { return r.label; }),
         axisLabel: { fontSize: 10, interval: 0, rotate: 18 }, axisTick: { show: false } },
       yAxis: { type: 'value', name: '亿元', splitLine: { lineStyle: { color: '#eef1f5' } } },
       series: GORDER.map(function (g) {
         return { name: g, type: 'bar', stack: 't', barMaxWidth: 44,
           itemStyle: { color: GCOLOR2[g] },
-          data: HIST.map(function (r) { return r.groups[g] || 0; }) };
+          data: H5.map(function (r) { return r.groups[g] || 0; }) };
       })
     });
   })();
